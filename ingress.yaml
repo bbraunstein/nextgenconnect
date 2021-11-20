@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: nextgenconnect
+spec:
+  tls:
+    - secretName: 192-168-99-101-nip-io-tls
+      hosts:
+        - '*.192.168.99.101.nip.io'
+  rules:
+    - host: nextgenconnect.192.168.99.101.nip.io
+      http:
+        paths:
+          - backend:
+             serviceName: nextgenconnect
+             servicePort: 443
+
+
