@@ -17,18 +17,18 @@ spec:
     - name: MYSQL_ROOT_PASSWORD
       valueFrom:
         secretKeyRef:
-          key: mysql-secret-root
-          name: password
+          name: mysql-secret-root
+          key: password
     - name: MYSQL_USER
       valueFrom:
         secretKeyRef:
-          key: mysql-secret-mirth
-          name: username
+          name: mysql-secret-mirth
+          key: username
     - name: MYSQL_PASSWORD
       valueFrom:
         secretKeyRef:
-          key: mysql-secret-mirth
-          name: password
+          name: mysql-secret-mirth
+          key: password
   dnsPolicy: ClusterFirst
   restartPolicy: Always
 status: {}
