@@ -13,34 +13,6 @@ spec:
       labels:
         app: nextgenconnect
     spec:
-      initContainers:
-      - name: mysql-init
-        image: mysql:5.7
-        command: 
-        - bash
-        - "-c"
-        - |
-          for i in {1..60}; 
-            do sleep 1
-            if mysql -h mysql-0.mysql -u root -e 'SELECT 1;'; then 
-              mysql -h mysql-0.mysql -u root -e "CREATE USER IF NOT EXISTS '$DATABASE_USERNAME'@'%' IDENTIFIED BY '$DATABASE_PASSWORD'; GRANT ALL ON mirth_db.* TO '$DATABASE_USERNAME'@'%';"
-              exit 0
-            fi
-          done
-          exit 1
-        env:
-          - name: DATABASE
-            value: mysql
-          - name: DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: mysql-secret-mirth
-                key: username
-          - name: DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: mysql-secret-mirth
-                key: password
       containers:
       - name: nextgenconnect
         image: docker.io/nextgenhealthcare/connect
@@ -65,8 +37,20 @@ spec:
                 name: mysql-secret-mirth
                 key: password
           - name: DATABASE_URL
-            value: jdbc:mysql://mysql-0.mysql:3306/mirth_db
+            value: jdbc:mysql://mysql:3306/mirthdb
           - name: DATABASE_MAX_CONNECTIONS
             value: "20"
           - name: VMOPTIONS
             value: -Xmx512m
+          - name: ALLOW_INSECURE
+            value: "true"
+          - name: DATABASE_MAX_RETRY
+            value: "2"
+          - name: DATABASE_MAX_CONNECTIONS
+            value: "20"
+          - name: DATABASE_MAX_RETRY_WAIT
+            value: "10000"
+          - name: KEYSTORE_STOREPASS
+            value: "changeme"
+          - name: KEYSTORE_KEYPASS
+            value: "changeme"

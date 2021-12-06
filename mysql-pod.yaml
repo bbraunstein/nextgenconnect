@@ -3,6 +3,7 @@ kind: Pod
 metadata:
   creationTimestamp: null
   labels:
+    app: mysql
     run: mysql
   name: mysql
   namespace: nextgenconnect
@@ -29,6 +30,8 @@ spec:
         secretKeyRef:
           name: mysql-secret-mirth
           key: password
+    - name: MYSQL_DATABASE
+      value: mirthdb
   dnsPolicy: ClusterFirst
   restartPolicy: Always
 status: {}
