@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: nextgenconnect
-        image: docker.io/nextgenhealthcare/connect
+        image: docker.io/nextgenhealthcare/connect:3.12
         ports:
         - name: http
           containerPort: 8080
@@ -48,7 +48,10 @@ spec:
             value: "2"
           - name: DATABASE_MAX_RETRY_WAIT
             value: "10000"
-          - name: KEYSTORE_STOREPASS
-            value: "changeme"
-          - name: KEYSTORE_KEYPASS
-            value: "changeme"
+        volumeMounts:
+        - mountPath: /opt/connect/appdata
+          name: nextgenconnect-pvc
+      volumes:
+      - name: nextgenconnect-pvc
+        persistentVolumeClaim:
+          claimName: nextgenconnect-pvc
