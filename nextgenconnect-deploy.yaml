@@ -46,8 +46,6 @@ spec:
             value: "true"
           - name: DATABASE_MAX_RETRY
             value: "2"
-          - name: DATABASE_MAX_CONNECTIONS
-            value: "20"
           - name: DATABASE_MAX_RETRY_WAIT
             value: "10000"
           - name: KEYSTORE_STOREPASS
