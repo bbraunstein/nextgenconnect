@@ -106,7 +106,7 @@ metadata:
   name: nextgenconnect
   namespace: nextgenconnect
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       app: nextgenconnect
@@ -164,7 +164,7 @@ metadata:
   name: nextgenconnect
   namespace: nextgenconnect
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: nextgenconnect
   ports:
