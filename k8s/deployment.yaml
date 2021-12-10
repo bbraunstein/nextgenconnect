@@ -90,6 +90,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: nextgenconnect-pvc
+  namespace: nextgenconnect
   labels:
     app: nextgenconnect
 spec:
@@ -122,6 +123,8 @@ spec:
           containerPort: 8080
         - name: https
           containerPort: 8443
+        - name: http-listener
+          containerPort: 9000
         env:
           - name: DATABASE
             value: mysql
@@ -161,7 +164,7 @@ metadata:
   name: nextgenconnect
   namespace: nextgenconnect
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: nextgenconnect
   ports:
@@ -173,3 +176,25 @@ spec:
       port: 8443
       targetPort: 8443
       protocol: TCP
+    - name: http-listener
+      port: 9000
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nextgenconnect-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: nextgenconnect.signifyhealth.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nextgenconnect
+                port:
+                  number: 8443
