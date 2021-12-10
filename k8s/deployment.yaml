@@ -184,6 +184,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nextgenconnect-ingress
+  namespace: nextgenconnect
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
@@ -191,10 +192,17 @@ spec:
     - host: nextgenconnect.signifyhealth.com
       http:
         paths:
-          - path: /
+          - path: /hl7
             pathType: Prefix
             backend:
               service:
                 name: nextgenconnect
-                port:
-                  number: 8443
+                port: 
+                  number: 9000
+          - path: /flatfile
+            pathType: Prefix
+            backend:
+              service:
+                name: nextgenconnect
+                port: 
+                  number: 9000
