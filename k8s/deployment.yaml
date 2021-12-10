@@ -122,8 +122,6 @@ spec:
           containerPort: 8080
         - name: https
           containerPort: 8443
-        - name: hl7-test
-          containerPort: 9001
         env:
           - name: DATABASE
             value: mysql
@@ -174,8 +172,4 @@ spec:
     - name: https
       port: 8443
       targetPort: 8443
-      protocol: TCP
-    - name: hl7-test
-      port: 9001
-      targetPort: 9001
       protocol: TCP
