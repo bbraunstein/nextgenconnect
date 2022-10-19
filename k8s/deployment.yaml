@@ -2,10 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  creationTimestamp: null
   name: nextgenconnect
-spec: {}
-status: {}
 ---
 apiVersion: v1
 kind: Secret
@@ -31,48 +28,64 @@ stringData:
   username: root
   password: sUp3R53cr3T!
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  creationTimestamp: null
-  labels:
-    app: mysql
-    run: mysql
   name: mysql
   namespace: nextgenconnect
 spec:
-  containers:
-  - image: mysql:8.0
-    name: mysql
-    ports:
-    - containerPort: 3306
-    resources: {}
-    env:
-    - name: MYSQL_ROOT_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: mysql-secret-root
-          key: password
-    - name: MYSQL_USER
-      valueFrom:
-        secretKeyRef:
-          name: mysql-secret-mirth
-          key: username
-    - name: MYSQL_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: mysql-secret-mirth
-          key: password
-    - name: MYSQL_DATABASE
-      value: mirthdb
-  dnsPolicy: ClusterFirst
-  restartPolicy: Always
-status: {}
+  selector:
+    matchLabels:
+      app: mysql
+  serviceName: "mysql"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - image: mysql:8.0
+        name: mysql
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-pv
+          mountPath: /var/lib/mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret-root
+              key: password
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret-mirth
+              key: username
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret-mirth
+              key: password
+        - name: MYSQL_DATABASE
+          value: mirthdb
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: mysql-pv
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "gp2"
+      resources:
+        requests:
+          storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: null
   labels:
     app: mysql
   name: mysql
@@ -83,22 +96,6 @@ spec:
     protocol: TCP
   selector:
     app: mysql
-status:
-  loadBalancer: {}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nextgenconnect-pvc
-  namespace: nextgenconnect
-  labels:
-    app: nextgenconnect
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -106,7 +103,7 @@ metadata:
   name: nextgenconnect
   namespace: nextgenconnect
 spec:
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       app: nextgenconnect
@@ -117,10 +114,8 @@ spec:
     spec:
       containers:
       - name: nextgenconnect
-        image: docker.io/nextgenhealthcare/connect:3.12
+        image: docker.io/nextgenhealthcare/connect:4.0
         ports:
-        - name: http
-          containerPort: 8080
         - name: https
           containerPort: 8443
         - name: http-listener
@@ -150,13 +145,10 @@ spec:
             value: "2"
           - name: DATABASE_MAX_RETRY_WAIT
             value: "10000"
-        volumeMounts:
-        - mountPath: /opt/connect/appdata
-          name: nextgenconnect-pvc
-      volumes:
-      - name: nextgenconnect-pvc
-        persistentVolumeClaim:
-          claimName: nextgenconnect-pvc
+          - name: _MP_SERVER_ID_EPHEMERAL
+            value: "true"
+          - name: _MP_SERVER_STARTUPDEPLOY
+            value: "true"
 ---
 apiVersion: v1
 kind: Service
@@ -164,14 +156,9 @@ metadata:
   name: nextgenconnect
   namespace: nextgenconnect
 spec:
-  type: LoadBalancer
   selector:
     app: nextgenconnect
   ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
-      protocol: TCP
     - name: https
       port: 8443
       targetPort: 8443
@@ -183,26 +170,33 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nextgenconnect-ingress
+  name: nextgenconnect
   namespace: nextgenconnect
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    traefik.ingress.kubernetes.io/router.tls: "true"                              # Required. Instructs Traefik to route HTTPS request and terminate SSL connections
+    kubernetes.io/tls-acme: "true"                                                # Required. Instructs cert-manager to automate TLS issuance.
+    cert-manager.io/common-name: nextgenconnect.example.com      # Required. Certificate must contain a Common Name (CN).
+    external-dns.alpha.kubernetes.io/target: traefik.example.com # Required. Instructs external-dns to create a CNAME to traefik ingress router entrypoint.
 spec:
   rules:
-    - host: nextgenconnect.signifyhealth.com
+    - host: nextgenconnect.example.com
       http:
         paths:
-          - path: /hl7
+          - path: /
             pathType: Prefix
             backend:
               service:
                 name: nextgenconnect
-                port: 
-                  number: 9000
-          - path: /flatfile
+                port:
+                  number: 8443
+          - path: /api/v1/
             pathType: Prefix
             backend:
               service:
                 name: nextgenconnect
-                port: 
+                port:
                   number: 9000
+  tls:
+  - secretName: nextgenconnect-tls
+    hosts:
+      - nextgenconnect.example.com # Required. Instructs Ingress controller to secure the channel. `hosts` in the `tls` section need to explicitly match the `host` in the `rules` section.
